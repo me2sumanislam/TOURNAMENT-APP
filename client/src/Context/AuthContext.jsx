@@ -1,18 +1,26 @@
  import { createContext, useEffect, useState } from "react";
 
-// ১. কনটেক্সট তৈরি করুন
 const AuthContext = createContext();
 
-// ২. প্রোভাইডার কম্পোনেন্ট
 const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem("user");
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch (error) {
-      return null;
-    }
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // ✅ এটি অ্যাপ ক্র্যাশ হওয়া আটকাবে
+
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const savedUser = localStorage.getItem("user");
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        setLoading(false); // ✅ ডাটা চেক শেষ
+      }
+    };
+    checkAuth();
+  }, []);
 
   const login = (userData) => {
     setUser(userData);
@@ -26,11 +34,10 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// ৩. একসাথে এক্সপোর্ট করুন (Vite Fast Refresh এর জন্য এটিই বেস্ট)
 export { AuthContext, AuthProvider };
