@@ -6,20 +6,43 @@ const router = express.Router();
 // ✅ ১. সব টুর্নামেন্ট দেখার জন্য (GET)
 router.get("/", async (req, res) => {
   try {
-    const tournaments = await Tournament.find();
+    const tournaments = await Tournament.find().sort({ createdAt: -1 });
     res.json(tournaments);
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error while fetching matches" });
   }
 });
 
 // ✅ ২. নতুন টুর্নামেন্ট যোগ করার জন্য (POST)
 router.post("/", async (req, res) => {
   try {
-    const newTournament = new Tournament(req.body);
+    // ফ্রন্টএন্ড থেকে আসা ডাটা রিসিভ করা (date যুক্ত করা হয়েছে)
+    const { title, fee, entry, prize, time, date, map, mode, totalSlots, img } = req.body;
+
+    // ডাটা ম্যাপিং লজিক
+    const tournamentData = {
+      title,
+      entry: entry || fee, // যদি ফ্রন্টএন্ড থেকে 'fee' আসে তবে সেটি 'entry' তে বসবে
+      prize,
+      time, // অ্যাডমিন প্যানেল থেকে আসা সময়
+      date, // অ্যাডমিন প্যানেল থেকে আসা তারিখ
+      map,
+      mode,
+      totalSlots,
+      img
+    };
+
+    const newTournament = new Tournament(tournamentData);
     const savedTournament = await newTournament.save();
-    res.status(201).json(savedTournament);
+    
+    res.status(201).json({
+      success: true,
+      message: "Match created successfully! 🎮",
+      data: savedTournament
+    });
   } catch (err) {
+    console.error("Create Error:", err.message);
+    // validation error মেসেজটি ফ্রন্টএন্ডে পাঠানো
     res.status(400).json({ error: err.message });
   }
 });
@@ -27,8 +50,9 @@ router.post("/", async (req, res) => {
 // ✅ ৩. টুর্নামেন্ট মুছে ফেলার জন্য (DELETE)
 router.delete("/:id", async (req, res) => {
   try {
-    await Tournament.findByIdAndDelete(req.params.id);
-    res.json({ message: "Tournament deleted successfully!" });
+    const deleted = await Tournament.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Match not found" });
+    res.json({ success: true, message: "Tournament deleted successfully! 🗑️" });
   } catch (err) {
     res.status(500).json({ error: "Delete failed" });
   }
@@ -42,41 +66,34 @@ router.post("/join/:id", async (req, res) => {
     const tournament = await Tournament.findById(req.params.id);
     if (!tournament) return res.status(404).json({ error: "Match not found" });
 
-    tournament.players.push({ 
-      name, 
-      phone, 
-      trxID,
-      status: "Pending" 
-    });
+    // মডেলের ভার্চুয়াল প্রোপার্টি isFull ব্যবহার করে চেক
+    if (tournament.isFull) {
+      return res.status(400).json({ error: "Sorry, this match is already full!" });
+    }
 
+    tournament.players.push({ name, phone, trxID, status: "Pending" });
     await tournament.save();
-    res.json({ message: `Success! ${name}, your request is pending for approval. 🔥` });
+    
+    res.json({ success: true, message: `Success! ${name}, your request is pending. 🔥` });
   } catch (err) {
-    console.error("Join Error:", err.message);
     res.status(500).json({ error: "Join failed" });
   }
 });
 
-// ✅ ৫. পেমেন্ট স্ট্যাটাস আপডেট করার জন্য (PATCH)
+// ✅ ৫. পেমেন্ট স্ট্যাটাস আপডেট (PATCH)
 router.patch("/status/:tournamentId/:playerId", async (req, res) => {
   const { status } = req.body; 
-  
   try {
-    // সরাসরি আপডেট করার চেষ্টা (এতে এরর হওয়ার সম্ভাবনা কম থাকে)
     const updatedTournament = await Tournament.findOneAndUpdate(
       { _id: req.params.tournamentId, "players._id": req.params.playerId },
       { $set: { "players.$.status": status } },
-      { new: true, runValidators: false } // ভ্যালিডেশন শিথিল করা হলো যাতে ফেইল না করে
+      { new: true }
     );
 
-    if (!updatedTournament) {
-      return res.status(404).json({ error: "Tournament or Player not found" });
-    }
-
-    res.json({ message: `Player status updated to ${status}! ✅` });
+    if (!updatedTournament) return res.status(404).json({ error: "Tournament or Player not found" });
+    res.json({ success: true, message: `Status updated to ${status}! ✅` });
   } catch (err) {
-    console.error("Update Error:", err.message);
-    res.status(500).json({ error: "Status update failed", details: err.message });
+    res.status(500).json({ error: "Status update failed" });
   }
 });
 
