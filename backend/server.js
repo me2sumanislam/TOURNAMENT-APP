@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import dns from "node:dns";
 import tournamentsRoute from "./routes/tournaments.js";
+import authRoute from "./routes/auth.js"; // <--- Auth Route ইম্পোর্ট করা হলো
 
 // ✅ ১. কনফিগারেশন ও DNS ফিক্স
 dotenv.config();
@@ -14,10 +15,11 @@ const app = express();
 
 // ✅ ২. মিডলওয়্যার
 app.use(cors());
-app.use(express.json()); // বডি থেকে JSON ডাটা পড়ার জন্য
+app.use(express.json()); 
 
 // ✅ ৩. রাউট সেটআপ
 app.use("/api/tournaments", tournamentsRoute);
+app.use("/api/auth", authRoute); // <--- এখন /api/auth/login কাজ করবে
 
 // === ডিব্যাগিং লগ ===
 console.log("=== Environment Debug ===");
@@ -30,15 +32,13 @@ if (!process.env.MONGO_URI) {
 
 // ✅ ৪. ডাটাবেস কানেকশন
 mongoose
-  .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 10000,
-  })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected Successfully"))
   .catch((err) => {
     console.error("❌ MongoDB Connection Failed:", err.message);
   });
 
-// ✅ ৫. গ্লোবাল এরর হ্যান্ডলার (এটি ফেইল হওয়ার কারণ খুঁজে বের করবে)
+// ✅ ৫. গ্লোবাল এরর হ্যান্ডলার
 app.use((err, req, res, next) => {
   console.error("🔥 Server Error Stack:", err.stack);
   res.status(500).json({ 
