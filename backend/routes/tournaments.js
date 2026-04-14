@@ -16,16 +16,14 @@ router.get("/", async (req, res) => {
 // ✅ ২. নতুন টুর্নামেন্ট যোগ করার জন্য (POST)
 router.post("/", async (req, res) => {
   try {
-    // ফ্রন্টএন্ড থেকে আসা ডাটা রিসিভ করা (date যুক্ত করা হয়েছে)
     const { title, fee, entry, prize, time, date, map, mode, totalSlots, img } = req.body;
 
-    // ডাটা ম্যাপিং লজিক
     const tournamentData = {
       title,
-      entry: entry || fee, // যদি ফ্রন্টএন্ড থেকে 'fee' আসে তবে সেটি 'entry' তে বসবে
+      entry: entry || fee,
       prize,
-      time, // অ্যাডমিন প্যানেল থেকে আসা সময়
-      date, // অ্যাডমিন প্যানেল থেকে আসা তারিখ
+      time,
+      date,
       map,
       mode,
       totalSlots,
@@ -41,8 +39,6 @@ router.post("/", async (req, res) => {
       data: savedTournament
     });
   } catch (err) {
-    console.error("Create Error:", err.message);
-    // validation error মেসেজটি ফ্রন্টএন্ডে পাঠানো
     res.status(400).json({ error: err.message });
   }
 });
@@ -66,12 +62,12 @@ router.post("/join/:id", async (req, res) => {
     const tournament = await Tournament.findById(req.params.id);
     if (!tournament) return res.status(404).json({ error: "Match not found" });
 
-    // মডেলের ভার্চুয়াল প্রোপার্টি isFull ব্যবহার করে চেক
     if (tournament.isFull) {
       return res.status(400).json({ error: "Sorry, this match is already full!" });
     }
 
-    tournament.players.push({ name, phone, trxID, status: "Pending" });
+    // শুরুতে স্লট ০ থাকে, ভেরিফাই হলে স্লট নাম্বার বসবে
+    tournament.players.push({ name, phone, trxID, status: "Pending", slotNumber: 0 });
     await tournament.save();
     
     res.json({ success: true, message: `Success! ${name}, your request is pending. 🔥` });
@@ -80,20 +76,60 @@ router.post("/join/:id", async (req, res) => {
   }
 });
 
-// ✅ ৫. পেমেন্ট স্ট্যাটাস আপডেট (PATCH)
+// ✅ ৫. পেমেন্ট স্ট্যাটাস আপডেট ও অটোমেটিক স্লট এসাইন (PATCH)
 router.patch("/status/:tournamentId/:playerId", async (req, res) => {
   const { status } = req.body; 
   try {
+    const tournament = await Tournament.findById(req.params.tournamentId);
+    if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+
+    let assignedSlot = 0;
+
+    // যদি এডমিন কাউকে 'Verified' করে, তবে তাকে পরবর্তী খালি স্লটটি দেওয়া হবে
+    if (status === "Verified") {
+      const approvedPlayers = tournament.players.filter(p => p.status === "Verified");
+      assignedSlot = approvedPlayers.length + 1; 
+    }
+
     const updatedTournament = await Tournament.findOneAndUpdate(
       { _id: req.params.tournamentId, "players._id": req.params.playerId },
-      { $set: { "players.$.status": status } },
+      { 
+        $set: { 
+          "players.$.status": status,
+          "players.$.slotNumber": assignedSlot 
+        } 
+      },
       { new: true }
     );
 
-    if (!updatedTournament) return res.status(404).json({ error: "Tournament or Player not found" });
-    res.json({ success: true, message: `Status updated to ${status}! ✅` });
+    res.json({ 
+      success: true, 
+      message: `Player is now ${status}! Slot Number: ${assignedSlot} 🎯` 
+    });
   } catch (err) {
     res.status(500).json({ error: "Status update failed" });
+  }
+});
+
+// ✅ ৬. রুম আইডি এবং পাসওয়ার্ড আপডেট করার জন্য (PATCH)
+router.patch("/update-room/:id", async (req, res) => {
+  const { roomID, roomPass } = req.body;
+  try {
+    const updatedMatch = await Tournament.findByIdAndUpdate(
+      req.params.id,
+      { roomID, roomPass },
+      { new: true }
+    );
+
+    if (!updatedMatch) return res.status(404).json({ error: "Match not found" });
+
+    res.json({ 
+      success: true, 
+      message: "Room ID & Password updated! 🔑", 
+      data: updatedMatch 
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update room info" });
   }
 });
 

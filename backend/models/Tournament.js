@@ -2,7 +2,7 @@
 
 /**
  * Player Schema: 
- * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য ও পেমেন্ট স্ট্যাটাস।
+ * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য, পেমেন্ট স্ট্যাটাস এবং নির্দিষ্ট স্লট নাম্বার।
  */
 const playerSchema = new mongoose.Schema({
   name: { 
@@ -24,6 +24,11 @@ const playerSchema = new mongoose.Schema({
     type: String, 
     default: "Pending" // Pending, Verified, Rejected
   },
+  // স্লট ম্যানেজমেন্টের জন্য নতুন ফিল্ড
+  slotNumber: { 
+    type: Number, 
+    default: 0 // অ্যাডমিন যখন ভেরিফাই করবে তখন ১-৪৮ এর মধ্যে একটি নাম্বার বসবে
+  },
   joinedAt: { 
     type: Date, 
     default: Date.now 
@@ -32,7 +37,7 @@ const playerSchema = new mongoose.Schema({
 
 /**
  * Tournament Schema: 
- * টুর্নামেন্টের ডিটেইলস, ম্যাপ, টাইম এবং স্লট ম্যানেজমেন্ট।
+ * টুর্নামেন্টের ডিটেইলস, ম্যাপ, রুম আইডি-পাসওয়ার্ড এবং স্লট কন্ট্রোল।
  */
 const tournamentSchema = new mongoose.Schema({
   title: { 
@@ -61,15 +66,22 @@ const tournamentSchema = new mongoose.Schema({
     type: String,
     default: "Bermuda" // Bermuda, Purgatory, Kalahari
   },
-  // টাইম ফিল্ডটি স্ট্রিং হিসেবেই রাখা হলো যাতে HTML Time Input সরাসরি সেভ করা যায়
   time: {
     type: String, 
     required: [true, "Match time is required"] 
   },
-  // ডেট আলাদা থাকলে ফিল্টার করতে সুবিধা হয়
   date: {
     type: String,
     required: [true, "Match date is required"]
+  },
+  // রুম আইডি এবং পাসওয়ার্ড (BattleZone এর মতো শুধুমাত্র ভেরিফাইড প্লেয়াররা দেখবে)
+  roomID: { 
+    type: String, 
+    default: "" 
+  },
+  roomPass: { 
+    type: String, 
+    default: "" 
   },
   img: { 
     type: String, 
@@ -90,14 +102,17 @@ const tournamentSchema = new mongoose.Schema({
  * Virtual Property: slotsLeft
  */
 tournamentSchema.virtual('slotsLeft').get(function() {
-  return Math.max(0, this.totalSlots - this.players.length);
+  // শুধুমাত্র যারা Approved হয়েছে তাদের সংখ্যা বাদ দিয়ে স্লট হিসাব করা ভালো
+  const filledSlots = this.players.filter(p => p.status === "Approved").length;
+  return Math.max(0, this.totalSlots - filledSlots);
 });
 
 /**
  * Virtual Property: isFull
  */
 tournamentSchema.virtual('isFull').get(function() {
-  return this.players.length >= this.totalSlots;
+  const filledSlots = this.players.filter(p => p.status === "Approved").length;
+  return filledSlots >= this.totalSlots;
 });
 
 // মডেল ওভাররাইট রোধ করার জন্য
