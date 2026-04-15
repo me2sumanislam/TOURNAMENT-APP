@@ -4,9 +4,10 @@ import Admin from "../pages/Admin/Admin.jsx";
 import Login from "../pages/Login/Login.jsx";
 import Register from "../pages/Register/Register.jsx";
 import Profile from "../pages/Profile/Profile.jsx";
-import { PrivateRoute, AdminRoute } from "./Guard.jsx"; // Guard.jsx থেকে ইমপোর্ট করা হচ্ছে
 import Wallet from "../pages/Wallet/Wallet.jsx";
- 
+import AdminTransactions from "../pages/Admin/AdminTransactions.jsx"; // নতুন ইম্পোর্ট
+import { PrivateRoute, AdminRoute } from "./Guard.jsx";
+
 export const router = createBrowserRouter([
   { 
     path: "/", 
@@ -25,17 +26,17 @@ export const router = createBrowserRouter([
     element: <PrivateRoute><Profile /></PrivateRoute> 
   },
   { 
+    path: "/wallet", 
+    element: <PrivateRoute><Wallet /></PrivateRoute> 
+  },
+  // অ্যাডমিন ড্যাশবোর্ড
+  { 
     path: "/admin", 
     element: <AdminRoute><Admin /></AdminRoute> 
   },
-  
-{
-     path: "/wallet", 
-     element: <PrivateRoute><Wallet />
-     </PrivateRoute> 
-     
-    }
+  // পেমেন্ট অ্যাপ্রুভ করার জন্য নতুন রুট
+  { 
+    path: "/admin/payments", 
+    element: <AdminRoute><AdminTransactions /></AdminRoute> 
+  }
 ]);
-
-
- 

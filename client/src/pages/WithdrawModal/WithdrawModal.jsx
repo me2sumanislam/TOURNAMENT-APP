@@ -17,17 +17,19 @@ const WithdrawModal = ({ isOpen, onClose, availableBalance, onWithdraw }) => {
       alert("আপনার পর্যাপ্ত ব্যালেন্স নেই!");
       return;
     }
+    
+    // ইউজারকে পেন্ডিং মেসেজ দেখানো
+    alert(`আপনার ${amount} BDT উইথড্র রিকোয়েস্টটি 'Pending' অবস্থায় আছে। অ্যাডমিন চেক করে আপনার নম্বরে টাকা পাঠিয়ে দিবে।`);
+    
     onWithdraw({ selectedMethod, phone, amount });
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-[#fff9ff] w-full max-w-[400px] rounded-[30px] p-6 shadow-2xl relative animate-in zoom-in duration-300">
-        
-        {/* Close Button */}
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400"><X size={24}/></button>
 
-        {/* Available Amount Card */}
         <div className="flex flex-col items-center mb-6">
           <div className="bg-white px-8 py-3 rounded-2xl shadow-sm border border-gray-100 text-center">
             <p className="text-sm font-bold text-gray-800 mb-1">Available Amount</p>
@@ -38,26 +40,20 @@ const WithdrawModal = ({ isOpen, onClose, availableBalance, onWithdraw }) => {
           </div>
         </div>
 
-        {/* Payment Methods */}
         <div className="flex justify-between gap-2 mb-6">
           {["bKash", "Nagad", "Rocket"].map((m) => (
             <button
               key={m}
               onClick={() => setSelectedMethod(m)}
-              className={`flex-1 flex items-center gap-1 p-2 rounded-xl border-2 transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1 p-2 rounded-xl border-2 transition-all ${
                 selectedMethod === m ? "border-purple-600 bg-purple-50" : "border-gray-100 bg-white"
               }`}
             >
-              <img 
-                src={m === "bKash" ? "https://tds-images.thedailystar.net/sites/default/files/styles/very_big_201/public/feature/images/bkash_logo_0.png" : m === "Nagad" ? "https://download.logo.wine/logo/Nagad/Nagad-Logo.wine.png" : "https://www.tbsnews.net/sites/default/files/styles/infograph/public/images/2021/04/28/rocket.jpg"} 
-                className="h-5 w-5 object-contain" alt={m} 
-              />
               <span className="text-[12px] font-bold text-gray-700">{m}</span>
             </button>
           ))}
         </div>
 
-        {/* Inputs */}
         <div className="space-y-4">
           <input 
             type="text" 
@@ -66,7 +62,6 @@ const WithdrawModal = ({ isOpen, onClose, availableBalance, onWithdraw }) => {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
-          
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400 font-light">৳</span>
             <input 
@@ -77,16 +72,12 @@ const WithdrawModal = ({ isOpen, onClose, availableBalance, onWithdraw }) => {
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>
-
-          <p className="text-center text-red-500 text-xs font-semibold">
-            * Minimum Withdrawal amount is ৳100
-          </p>
+          <p className="text-center text-red-500 text-xs font-semibold">* Minimum Withdrawal amount is ৳100</p>
         </div>
 
-        {/* Withdraw Button */}
         <button 
           onClick={handleWithdrawClick}
-          className="w-full mt-6 py-4 bg-[#ff8c00] text-white rounded-full font-black text-lg shadow-lg shadow-orange-500/30 active:scale-95 transition-all"
+          className="w-full mt-6 py-4 bg-[#ff8c00] text-white rounded-full font-black text-lg shadow-lg active:scale-95 transition-all"
         >
           Withdraw
         </button>
