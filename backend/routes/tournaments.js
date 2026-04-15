@@ -1,5 +1,6 @@
  import express from "express";
-import Tournament from "../models/Tournament.js"; 
+import Tournament from "../models/Tournament.js";
+import User from "../models/User.js"; // ব্যালেন্স চেক করার জন্য ইউজার মডেল প্রয়োজন
 
 const router = express.Router();
 
@@ -54,25 +55,52 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// ✅ ৪. প্লেয়ার জয়েন করার জন্য (POST)
+// ✅ ৪. প্লেয়ার জয়েন করার জন্য (POST) - ব্যালেন্স চেকসহ আপডেট করা হয়েছে
 router.post("/join/:id", async (req, res) => {
-  const { name, phone, trxID } = req.body;
+  const { userId, name, phone, trxID } = req.body;
   
   try {
     const tournament = await Tournament.findById(req.params.id);
-    if (!tournament) return res.status(404).json({ error: "Match not found" });
+    const user = await User.findById(userId);
 
+    if (!tournament) return res.status(404).json({ error: "Match not found" });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // ১. চেক করা ম্যাচ ফুল কি না
     if (tournament.isFull) {
       return res.status(400).json({ error: "Sorry, this match is already full!" });
     }
 
-    // শুরুতে স্লট ০ থাকে, ভেরিফাই হলে স্লট নাম্বার বসবে
-    tournament.players.push({ name, phone, trxID, status: "Pending", slotNumber: 0 });
+    // ২. চেক করা ইউজার অলরেডি জয়েন করেছে কি না
+    const isAlreadyJoined = tournament.players.some(p => p.userId.toString() === userId);
+    if (isAlreadyJoined) {
+      return res.status(400).json({ error: "You have already joined this match!" });
+    }
+
+    // ৩. ব্যালেন্স চেক (যদি ইউজার ওয়ালেট দিয়ে জয়েন করে)
+    if (user.balance < tournament.entry) {
+        return res.status(400).json({ error: "Insufficient balance! Please add money to your wallet." });
+    }
+
+    // ৪. জয়েন করানো (শুরুতে স্লট ০ থাকে, অ্যাডমিন ভেরিফাই করলে স্লট নম্বর বসবে)
+    tournament.players.push({ 
+        userId, 
+        name, 
+        phone, 
+        trxID, 
+        status: "Pending", 
+        slotNumber: 0 
+    });
+
     await tournament.save();
     
-    res.json({ success: true, message: `Success! ${name}, your request is pending. 🔥` });
+    res.json({ 
+        success: true, 
+        message: `Success! ${name}, your join request is pending. 🔥` 
+    });
+
   } catch (err) {
-    res.status(500).json({ error: "Join failed" });
+    res.status(500).json({ error: "Join failed! " + err.message });
   }
 });
 
@@ -83,24 +111,26 @@ router.patch("/status/:tournamentId/:playerId", async (req, res) => {
     const tournament = await Tournament.findById(req.params.tournamentId);
     if (!tournament) return res.status(404).json({ error: "Tournament not found" });
 
+    const playerIndex = tournament.players.findIndex(p => p._id.toString() === req.params.playerId);
+    if (playerIndex === -1) return res.status(404).json({ error: "Player not found" });
+
     let assignedSlot = 0;
 
-    // যদি এডমিন কাউকে 'Verified' করে, তবে তাকে পরবর্তী খালি স্লটটি দেওয়া হবে
+    // যদি এডমিন কাউকে 'Verified' করে, তবে তাকে পরবর্তী খালি স্লটটি দেওয়া হবে
     if (status === "Verified") {
-      const approvedPlayers = tournament.players.filter(p => p.status === "Verified");
-      assignedSlot = approvedPlayers.length + 1; 
+      // বর্তমানের ভেরিফাইড প্লেয়ার সংখ্যা গুনে পরবর্তী স্লট এসাইন করা
+      const verifiedPlayersCount = tournament.players.filter(p => p.status === "Verified").length;
+      assignedSlot = verifiedPlayersCount + 1; 
+
+      // এখানে আপনি চাইলে ইউজারের ব্যালেন্স থেকে টাকা কেটে নেওয়ার লজিকও দিতে পারেন যদি আগে না কাটেন
+      // await User.findByIdAndUpdate(tournament.players[playerIndex].userId, { $inc: { balance: -tournament.entry } });
     }
 
-    const updatedTournament = await Tournament.findOneAndUpdate(
-      { _id: req.params.tournamentId, "players._id": req.params.playerId },
-      { 
-        $set: { 
-          "players.$.status": status,
-          "players.$.slotNumber": assignedSlot 
-        } 
-      },
-      { new: true }
-    );
+    // আপডেট লজিক
+    tournament.players[playerIndex].status = status;
+    tournament.players[playerIndex].slotNumber = assignedSlot;
+
+    await tournament.save();
 
     res.json({ 
       success: true, 

@@ -5,6 +5,11 @@
  * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য, পেমেন্ট স্ট্যাটাস এবং নির্দিষ্ট স্লট নাম্বার।
  */
 const playerSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
   name: { 
     type: String, 
     required: true, 
@@ -74,7 +79,7 @@ const tournamentSchema = new mongoose.Schema({
     type: String,
     required: [true, "Match date is required"]
   },
-  // রুম আইডি এবং পাসওয়ার্ড (BattleZone এর মতো শুধুমাত্র ভেরিফাইড প্লেয়াররা দেখবে)
+  // রুম আইডি এবং পাসওয়ার্ড (শুধুমাত্র ভেরিফাইড প্লেয়াররা দেখবে)
   roomID: { 
     type: String, 
     default: "" 
@@ -100,18 +105,20 @@ const tournamentSchema = new mongoose.Schema({
 
 /**
  * Virtual Property: slotsLeft
+ * কতটি স্লট খালি আছে তা বের করার জন্য
  */
 tournamentSchema.virtual('slotsLeft').get(function() {
-  // শুধুমাত্র যারা Approved হয়েছে তাদের সংখ্যা বাদ দিয়ে স্লট হিসাব করা ভালো
-  const filledSlots = this.players.filter(p => p.status === "Approved").length;
+  // শুধুমাত্র যারা Verified হয়েছে তাদের সংখ্যা বাদ দিয়ে স্লট হিসাব করা হবে
+  const filledSlots = this.players.filter(p => p.status === "Verified").length;
   return Math.max(0, this.totalSlots - filledSlots);
 });
 
 /**
  * Virtual Property: isFull
+ * টুর্নামেন্ট ফুল কি না তা চেক করার জন্য
  */
 tournamentSchema.virtual('isFull').get(function() {
-  const filledSlots = this.players.filter(p => p.status === "Approved").length;
+  const filledSlots = this.players.filter(p => p.status === "Verified").length;
   return filledSlots >= this.totalSlots;
 });
 

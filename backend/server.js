@@ -3,8 +3,11 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import dns from "node:dns";
+
+// রাউট ইম্পোর্ট (নিশ্চিত করুন এই ফাইলগুলো routes ফোল্ডারে আছে)
 import tournamentsRoute from "./routes/tournaments.js";
-import authRoute from "./routes/auth.js"; // <--- Auth Route ইম্পোর্ট করা হলো
+import authRoute from "./routes/auth.js";
+import transactionsRoute from "./routes/transactions.js";
 
 // ✅ ১. কনফিগারেশন ও DNS ফিক্স
 dotenv.config();
@@ -19,7 +22,8 @@ app.use(express.json());
 
 // ✅ ৩. রাউট সেটআপ
 app.use("/api/tournaments", tournamentsRoute);
-app.use("/api/auth", authRoute); // <--- এখন /api/auth/login কাজ করবে
+app.use("/api/auth", authRoute);
+app.use("/api/transactions", transactionsRoute); // ওয়ালেট এপিআই এন্ডপয়েন্ট
 
 // === ডিব্যাগিং লগ ===
 console.log("=== Environment Debug ===");
