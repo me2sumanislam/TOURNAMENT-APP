@@ -25,6 +25,7 @@ const Profile = () => {
         onWithdraw={(data) => console.log(data)}
       />
 
+      {/* Profile Header */}
       <div className="bg-gradient-to-b from-[#4facfe] to-[#00f2fe] p-8 pb-12 flex flex-col items-center rounded-b-[40px] shadow-lg">
         <div className="w-24 h-24 bg-yellow-400 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden mb-4">
            {userData.avatar ? <img src={userData.avatar} className="w-full h-full object-cover" /> : <UserIcon size={50} className="text-white" />}
@@ -46,27 +47,34 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Menu Items */}
       <div className="mt-6 px-4 space-y-2">
         <MenuItem icon={<Wallet className="text-blue-500" />} title="Wallet" onClick={() => navigate("/wallet")} />
         <MenuItem icon={<ArrowUpCircle className="text-blue-500" />} title="Withdraw" onClick={() => setIsWithdrawOpen(true)} />
+        {/* আপনি চাইলে এখানেও My Matches মেনু হিসেবে যোগ করতে পারেন */}
+        <MenuItem icon={<LayoutGrid className="text-blue-500" />} title="My Matches" onClick={() => navigate("/my-matches")} />
         <MenuItem icon={<UserIcon className="text-blue-500" />} title="My Profile" />
         <MenuItem icon={<BarChart3 className="text-blue-500" />} title="Top Players" />
         <MenuItem icon={<Code2 className="text-blue-500" />} title="Developer Profile" />
       </div>
 
+      {/* Logout Button */}
       <div className="p-6">
         <button onClick={() => logout()} className="w-full bg-[#4facfe] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all">
           <LogOut size={20} /> Logout
         </button>
       </div>
 
+      {/* WhatsApp Support */}
       <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="fixed bottom-24 right-6 bg-white p-4 rounded-3xl shadow-2xl border-2 border-green-500 hover:scale-110 transition-transform">
         <Headphones size={30} className="text-green-500" />
       </a>
 
+      {/* Bottom Navigation */}
       <div className="fixed bottom-0 w-full bg-white border-t flex justify-around p-3 z-50">
         <NavIcon icon={<Play size={22} />} label="Play" onClick={() => navigate("/")} />
-        <NavIcon icon={<LayoutGrid size={22} />} label="My Matches" />
+        {/* ✅ My Matches বাটন এখন কাজ করবে */}
+        <NavIcon icon={<LayoutGrid size={22} />} label="My Matches" onClick={() => navigate("/my-matches")} />
         <NavIcon icon={<Trophy size={22} />} label="Results" />
         <NavIcon icon={<UserIcon size={22} />} label="Profile" active />
       </div>
