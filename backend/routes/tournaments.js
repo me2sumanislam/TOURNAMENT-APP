@@ -1,10 +1,11 @@
  import express from "express";
+import mongoose from "mongoose"; // ObjectId হ্যান্ডেল করার জন্য প্রয়োজন
 import Tournament from "../models/Tournament.js";
 import User from "../models/User.js";
 
 const router = express.Router();
 
-// ✅ ১. সব টুর্নামেন্ট দেখার রাউট (GET)
+// ✅ ১. সকল টুর্নামেন্ট দেখার রাউট (GET)
 router.get("/", async (req, res) => {
   try {
     const tournaments = await Tournament.find().sort({ createdAt: -1 });
@@ -14,37 +15,37 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ ২. ইউজারের জয়েন করা নির্দিষ্ট টুর্নামেন্ট দেখা
+// ✅ ২. ইউজারের জয়েন করা নির্দিষ্ট টুর্নামেন্ট দেখা (FIXED)
+// এটি MyMatches.jsx থেকে কল হবে
 router.get("/my-matches/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
-    if (!userId) return res.status(400).json({ error: "User ID is required" });
+    if (!userId || userId === "undefined") {
+        return res.status(400).json({ error: "Valid User ID is required" });
+    }
+
+    // কোড ফিক্স: অনেক সময় ডাটাবেসে ID অবজেক্ট হিসেবে থাকে, তাই কনভার্ট করে সার্চ করা হচ্ছে
+    const matches = await Tournament.find({ 
+      "players.userId": new mongoose.Types.ObjectId(userId) 
+    });
     
-    const matches = await Tournament.find({ "players.userId": userId });
     res.json(matches);
   } catch (err) {
+    console.error("MyMatches Error:", err);
     res.status(500).json({ error: "Failed to fetch joined matches" });
   }
 });
 
-// ✅ ৩. নতুন টুর্নামেন্ট যোগ করা (POST)
+// ✅ ৩. নতুন টুর্নামেন্ট তৈরি করা (POST)
 router.post("/", async (req, res) => {
   try {
     const { title, entry, prize, time, date, map, mode, totalSlots, img } = req.body;
 
     const newTournament = new Tournament({
-      title,
-      entry,
-      prize,
-      time,
-      date,
-      map,
-      mode,
-      totalSlots,
-      img,
+      title, entry, prize, time, date, map, mode, totalSlots, img,
       players: [],
-      roomID: "",
-      roomPass: ""
+      roomID: "", 
+      roomPass: "" 
     });
 
     const savedTournament = await newTournament.save();
@@ -54,56 +55,51 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ✅ ৪. অটোমেটিক ব্যালেন্স কেটে প্লেয়ার জয়েন (POST) - UPDATED TO FIX VALIDATION ERROR
+// ✅ ৪. ব্যালেন্স কেটে টুর্নামেন্টে জয়েন করা (POST)
 router.post("/join/:id", async (req, res) => {
   try {
     const { userId, name, phone } = req.body;
     const tournamentId = req.params.id;
 
-    // ১. ডাটা চেক (যদি নাম বা আইডি না থাকে তবে এখানেই থামিয়ে দেবে)
     if (!userId) return res.status(400).json({ error: "User ID is missing! 🔒" });
     if (!name) return res.status(400).json({ error: "In-game name is required! 🎮" });
 
     const tournament = await Tournament.findById(tournamentId);
     const user = await User.findById(userId);
 
-    if (!tournament) return res.status(404).json({ error: "Match not found" });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!tournament || !user) return res.status(404).json({ error: "Match or User not found" });
 
-    // ২. চেক করা ম্যাচ ফুল কি না
+    // স্লট চেক
     if (tournament.players.length >= tournament.totalSlots) {
       return res.status(400).json({ error: "Sorry, this match is already full! 🚫" });
     }
 
-    // ৩. চেক করা ইউজার অলরেডি জয়েন করেছে কি না (Safe Check)
+    // ডুপ্লিকেট জয়েন চেক
     const isAlreadyJoined = tournament.players.some(p => p.userId && p.userId.toString() === userId.toString());
-    
     if (isAlreadyJoined) {
       return res.status(400).json({ error: "You have already joined this match! ⚠️" });
     }
 
-    // ৪. ব্যালেন্স চেক
+    // ব্যালেন্স চেক
     if (user.balance < tournament.entry) {
       return res.status(400).json({ error: "Insufficient balance! ❌ Please recharge your wallet." });
     }
 
-    // ৫. ব্যালেন্স কাটা এবং সেভ করা
+    // ব্যালেন্স কাটা
     user.balance -= tournament.entry;
     await user.save();
 
-    // ৬. প্লেয়ার অ্যাড করা (নিশ্চিত করা হয়েছে যে name ফিল্ডে ডাটা যাচ্ছে)
+    // প্লেয়ার তথ্য পুশ করা (অবশ্যই ObjectId হিসেবে)
     const nextSlot = tournament.players.length + 1;
-    
     const newPlayer = { 
-        userId: user._id, 
-        name: name.trim(), // ইনপুট থেকে আসা নাম
+        userId: new mongoose.Types.ObjectId(userId), 
+        name: name.trim(), 
         phone: phone || user.phone || "N/A", 
         status: "Verified", 
         slotNumber: nextSlot 
     };
 
     tournament.players.push(newPlayer);
-
     await tournament.save();
     
     res.json({ 
@@ -127,16 +123,14 @@ router.patch("/update-room/:id", async (req, res) => {
       { roomID, roomPass },
       { new: true }
     );
-
     if (!updatedMatch) return res.status(404).json({ error: "Match not found" });
-
     res.json({ success: true, message: "Room ID & Password updated! 🔑" });
   } catch (err) {
     res.status(500).json({ error: "Failed to update room info" });
   }
 });
 
-// ✅ ৬. টুর্নামেন্ট মুছে ফেলা (DELETE)
+// ✅ ৬. টুর্নামেন্ট ডিলিট করা (DELETE)
 router.delete("/:id", async (req, res) => {
   try {
     const deleted = await Tournament.findByIdAndDelete(req.params.id);
