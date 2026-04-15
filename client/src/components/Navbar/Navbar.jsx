@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
 import { AuthContext } from "../../Context/AuthContext"; 
+import { Trophy } from "lucide-react"; // লিডারবোর্ড আইকনের জন্য
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,9 +23,21 @@ const Navbar = () => {
           {/* মেনু আইটেমস (Desktop) */}
           <div className="hidden md:flex space-x-8 items-center">
             <Link to="/" className="text-gray-300 hover:text-indigo-400 transition font-medium">Home</Link>
+            
+            {/* ✅ Leaderboard লিঙ্ক যোগ করা হয়েছে */}
+            <Link to="/leaderboard" className="flex items-center gap-1 text-gray-300 hover:text-yellow-500 transition font-medium">
+              <Trophy size={16} /> Leaderboard
+            </Link>
+
+            {user && (
+              <Link to="/my-matches" className="text-gray-300 hover:text-indigo-400 transition font-medium">
+                My Matches
+              </Link>
+            )}
+
             <Link to="/matches" className="text-gray-300 hover:text-indigo-400 transition font-medium">Matches</Link>
             
-            {/* ✅ শুধুমাত্র অ্যাডমিন হলে এই লিঙ্কটি দেখা যাবে */}
+            {/* অ্যাডমিন প্যানেল লিঙ্ক */}
             {user && user.role === "admin" && (
               <Link to="/admin" className="text-indigo-400 border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 rounded-md transition font-bold animate-pulse">
                 Admin Panel
@@ -69,7 +82,17 @@ const Navbar = () => {
           <div className="px-4 pt-2 pb-4 space-y-2">
             <Link to="/" onClick={() => setIsOpen(false)} className="block text-gray-300 hover:bg-gray-700 p-2 rounded-lg text-base">Home</Link>
             
-            {/* ✅ মোবাইল মেনুতে অ্যাডমিন লিঙ্ক */}
+            {/* ✅ মোবাইল মেনুতে Leaderboard */}
+            <Link to="/leaderboard" onClick={() => setIsOpen(false)} className="flex items-center gap-2 text-yellow-500 hover:bg-gray-700 p-2 rounded-lg text-base font-bold uppercase">
+              <Trophy size={18} /> Leaderboard
+            </Link>
+
+            {user && (
+              <Link to="/my-matches" onClick={() => setIsOpen(false)} className="block text-gray-300 hover:bg-gray-700 p-2 rounded-lg text-base">
+                My Matches
+              </Link>
+            )}
+
             {user && user.role === "admin" && (
               <Link to="/admin" onClick={() => setIsOpen(false)} className="block text-indigo-400 font-bold bg-indigo-500/10 p-2 rounded-lg text-base">
                 Admin Panel

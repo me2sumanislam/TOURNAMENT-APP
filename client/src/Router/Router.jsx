@@ -5,8 +5,9 @@ import Login from "../pages/Login/Login.jsx";
 import Register from "../pages/Register/Register.jsx";
 import Profile from "../pages/Profile/Profile.jsx";
 import Wallet from "../pages/Wallet/Wallet.jsx";
-import MyMatches from "../pages/MyMatches/MyMatches.jsx"; // নতুন ইম্পোর্ট
+import MyMatches from "../pages/MyMatches/MyMatches.jsx";
 import AdminTransactions from "../pages/Admin/AdminTransactions.jsx";
+import Leaderboard from "../pages/Leaderboard/Leaderboard.jsx"; // ✅ নতুন ইম্পোর্ট
 import { PrivateRoute, AdminRoute } from "./Guard.jsx";
 
 export const router = createBrowserRouter([
@@ -30,10 +31,14 @@ export const router = createBrowserRouter([
     path: "/wallet", 
     element: <PrivateRoute><Wallet /></PrivateRoute> 
   },
-  // ইউজার কতগুলো ম্যাচে জয়েন করেছে তা দেখার রুট
   { 
     path: "/my-matches", 
     element: <PrivateRoute><MyMatches /></PrivateRoute> 
+  },
+  // ✅ লিডারবোর্ড রুট (এটি সবাই দেখতে পাবে, তাই প্রাইভেট করার দরকার নেই)
+  { 
+    path: "/leaderboard", 
+    element: <Leaderboard /> 
   },
   
   // অ্যাডমিন ড্যাশবোর্ড
