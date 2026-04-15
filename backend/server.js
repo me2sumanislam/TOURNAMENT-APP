@@ -8,6 +8,8 @@ import dns from "node:dns";
 import tournamentsRoute from "./routes/tournaments.js";
 import authRoute from "./routes/auth.js";
 import transactionsRoute from "./routes/transactions.js";
+// ✅ নতুন রাউট ইমপোর্ট (লিডারবোর্ড)
+import leaderboardRoute from "./routes/leaderboard.js";
 
 // ✅ ১. কনফিগারেশন ও DNS ফিক্স
 dotenv.config();
@@ -20,15 +22,17 @@ const app = express();
 app.use(cors());
 app.use(express.json()); 
 
-// হেথ চেক রুট (সার্ভার চলছে কি না চেক করার জন্য)
+// হেলথ চেক রুট
 app.get("/", (req, res) => {
   res.send("🚀 Tournament Server is Running...");
 });
 
 // ✅ ৩. রাউট সেটআপ
-app.use("/api/tournaments", tournamentsRoute); // এখানে My Matches লজিক থাকবে
+app.use("/api/tournaments", tournamentsRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/transactions", transactionsRoute); 
+// ✅ লিডারবোর্ড রাউট কানেক্ট করা হলো
+app.use("/api/leaderboard", leaderboardRoute);
 
 // === ডিব্যাগিং লগ ===
 if (!process.env.MONGO_URI) {

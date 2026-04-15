@@ -2,7 +2,7 @@
 
 /**
  * Player Schema: 
- * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য, পেমেন্ট স্ট্যাটাস এবং নির্দিষ্ট স্লট নাম্বার।
+ * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য, পেমেন্ট স্ট্যাটাস এবং সিকিউরিটি।
  */
 const playerSchema = new mongoose.Schema({
   userId: {
@@ -29,10 +29,19 @@ const playerSchema = new mongoose.Schema({
     type: String, 
     default: "Pending" // Pending, Verified, Rejected
   },
-  // স্লট ম্যানেজমেন্টের জন্য নতুন ফিল্ড
+  // স্লট ম্যানেজমেন্ট
   slotNumber: { 
     type: Number, 
-    default: 0 // অ্যাডমিন যখন ভেরিফাই করবে তখন ১-৪৮ এর মধ্যে একটি নাম্বার বসবে
+    default: 0 
+  },
+  /**
+   * ✅ IP Tracking Field:
+   * ইউজার যখন প্রথমবার রুম আইডি দেখবে, তখন তার IP এখানে সেভ হবে।
+   * এটি অন্য ডিভাইসে আইডি শেয়ারিং রোধ করবে।
+   */
+  ipAddress: { 
+    type: String, 
+    default: null 
   },
   joinedAt: { 
     type: Date, 
@@ -69,7 +78,7 @@ const tournamentSchema = new mongoose.Schema({
   },
   map: {
     type: String,
-    default: "Bermuda" // Bermuda, Purgatory, Kalahari
+    default: "Bermuda" 
   },
   time: {
     type: String, 
@@ -79,7 +88,7 @@ const tournamentSchema = new mongoose.Schema({
     type: String,
     required: [true, "Match date is required"]
   },
-  // রুম আইডি এবং পাসওয়ার্ড (শুধুমাত্র ভেরিফাইড প্লেয়াররা দেখবে)
+  // রুম আইডি এবং পাসওয়ার্ড
   roomID: { 
     type: String, 
     default: "" 
@@ -105,17 +114,14 @@ const tournamentSchema = new mongoose.Schema({
 
 /**
  * Virtual Property: slotsLeft
- * কতটি স্লট খালি আছে তা বের করার জন্য
  */
 tournamentSchema.virtual('slotsLeft').get(function() {
-  // শুধুমাত্র যারা Verified হয়েছে তাদের সংখ্যা বাদ দিয়ে স্লট হিসাব করা হবে
   const filledSlots = this.players.filter(p => p.status === "Verified").length;
   return Math.max(0, this.totalSlots - filledSlots);
 });
 
 /**
  * Virtual Property: isFull
- * টুর্নামেন্ট ফুল কি না তা চেক করার জন্য
  */
 tournamentSchema.virtual('isFull').get(function() {
   const filledSlots = this.players.filter(p => p.status === "Verified").length;
