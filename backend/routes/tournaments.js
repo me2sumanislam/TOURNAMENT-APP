@@ -19,7 +19,7 @@ router.get("/", async (req, res) => {
 router.get("/room-info/:tournamentId/:userId", async (req, res) => {
   try {
     const { tournamentId, userId } = req.params;
-    const { deviceId } = req.query; // ফ্রন্টএন্ড থেকে পাঠানো ইউনিক ডিভাইস আইডি
+    const { deviceId } = req.query;
 
     const tournament = await Tournament.findById(tournamentId);
     if (!tournament) return res.status(404).json({ error: "Match not found!" });
@@ -27,7 +27,6 @@ router.get("/room-info/:tournamentId/:userId", async (req, res) => {
     const player = tournament.players.find(p => p.userId.toString() === userId);
     if (!player) return res.status(403).json({ error: "You are not a participant!" });
 
-    // 🔒 Device Locking Logic
     if (!player.ipAddress) {
       player.ipAddress = deviceId; 
       await tournament.save();
@@ -110,26 +109,35 @@ router.patch("/update-room/:id", async (req, res) => {
   }
 });
 
-// ✅ ৭. অ্যাডমিন কর্তৃক স্লট ও রেজাল্ট আপডেট করা (একসাথে)
+// ✅ ৭. অ্যাডমিন কর্তৃক স্লট ও রেজাল্ট আপডেট (Updated for Instant UI Reflection)
 router.patch("/update-player-admin/:tournamentId/:userId", async (req, res) => {
   try {
     const { tournamentId, userId } = req.params;
     const { slotNumber, kills, points } = req.body;
 
     const tournament = await Tournament.findById(tournamentId);
-    const player = tournament.players.find(p => p.userId.toString() === userId);
-    
-    if (!player) return res.status(404).json({ error: "Player not found" });
+    if (!tournament) return res.status(404).json({ error: "Tournament not found" });
 
-    if (slotNumber) player.slotNumber = slotNumber;
-    // কিল এবং পয়েন্ট প্লেয়ারের টুর্নামেন্ট রেকর্ডে সেভ হচ্ছে
-    player.kills = kills || player.kills || 0;
-    player.points = points || player.points || 0;
+    const playerIndex = tournament.players.findIndex(p => p.userId.toString() === userId);
+    if (playerIndex === -1) return res.status(404).json({ error: "Player not found" });
 
-    await tournament.save();
-    res.json({ success: true, message: "Data updated!" });
+    // ডাটা আপডেট
+    if (slotNumber !== undefined) tournament.players[playerIndex].slotNumber = Number(slotNumber);
+    tournament.players[playerIndex].kills = Number(kills) || 0;
+    tournament.players[playerIndex].points = Number(points) || 0;
+
+    tournament.markModified('players');
+    const updatedTournament = await tournament.save();
+
+    // রেজাল্ট পাঠানোর সময় success: true এবং আপডেটেড ডাটা পাঠানো হচ্ছে
+    res.json({ 
+      success: true, 
+      message: "Data updated successfully! ✅",
+      data: updatedTournament 
+    });
   } catch (err) {
-    res.status(500).json({ error: "Failed to update" });
+    console.error("Update Error:", err);
+    res.status(500).json({ error: "Failed to update: " + err.message });
   }
 });
 

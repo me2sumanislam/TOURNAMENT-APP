@@ -2,7 +2,7 @@
 
 /**
  * Player Schema: 
- * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য, পেমেন্ট স্ট্যাটাস এবং সিকিউরিটি।
+ * টুর্নামেন্টে যারা জয়েন করবে তাদের তথ্য, পেমেন্ট স্ট্যাটাস, রেজাল্ট এবং সিকিউরিটি।
  */
 const playerSchema = new mongoose.Schema({
   userId: {
@@ -35,9 +35,20 @@ const playerSchema = new mongoose.Schema({
     default: 0 
   },
   /**
-   * ✅ IP Tracking Field:
-   * ইউজার যখন প্রথমবার রুম আইডি দেখবে, তখন তার IP এখানে সেভ হবে।
-   * এটি অন্য ডিভাইসে আইডি শেয়ারিং রোধ করবে।
+   * ✅ Match Results:
+   * ম্যাচ শেষে ইউজারের পারফরম্যান্স সেভ করার জন্য এই ফিল্ডগুলো প্রয়োজন।
+   */
+  kills: { 
+    type: Number, 
+    default: 0 
+  },
+  points: { 
+    type: Number, 
+    default: 0 
+  },
+  /**
+   * ✅ IP/Device Tracking Field:
+   * ইউজার যখন প্রথমবার রুম আইডি দেখবে, তখন তার Fingerprint/IP এখানে সেভ হবে।
    */
   ipAddress: { 
     type: String, 
